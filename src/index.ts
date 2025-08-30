@@ -1,3 +1,5 @@
 import Consumer from './consumer';
+import PostgresQueueDriver from './queueDriver/PostgresQueueDriver';
+import SupabaseQueueDriver from './queueDriver/SupabaseQueueDriver';
 
-export default Consumer;
+export { Consumer, PostgresQueueDriver, SupabaseQueueDriver };
