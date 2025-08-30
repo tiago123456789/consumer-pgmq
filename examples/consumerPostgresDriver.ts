@@ -15,11 +15,11 @@ async function start() {
             password: process.env.POSTGRES_PASSWORD,
             port: Number(process.env.POSTGRES_PORT),
             user: process.env.POSTGRES_USER,
-            ssl: false
+            ssl: false,
         }
     });
 
-    const postgresQueueDriver = new PostgresQueueDriver(connection)
+    const postgresQueueDriver = new PostgresQueueDriver(connection, "pgmq")
 
     const consumer = new Consumer(
         {

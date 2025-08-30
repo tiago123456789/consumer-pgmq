@@ -3,8 +3,10 @@ import { Message, QueueDriver } from "../type";
 
 class PostgresQueueDriver implements QueueDriver {
 
+
     constructor(
-        private connection: Knex
+        private connection: Knex,
+        private schema: string = "public"
     ) { }
 
     /**
@@ -17,7 +19,7 @@ class PostgresQueueDriver implements QueueDriver {
     async get(queueName: string, visibilityTime: number, totalMessages: number): Promise<{ data: Message[]; error: any; }> {
         try {
             const register = await this.connection.raw(`
-                SELECT * FROM pgmq.read(
+                SELECT * FROM ${this.schema}.read(
                     queue_name => ?,
                     vt         => ?,
                     qty        => ?
@@ -44,7 +46,7 @@ class PostgresQueueDriver implements QueueDriver {
     async pop(queueName: string): Promise<{ data: Message[]; error: any; }> {
         try {
             const register = await this.connection.raw(`
-                SELECT * FROM pgmq.pop(
+                SELECT * FROM ${this.schema}.pop(
                     queue_name => ?
                 );
                 `, [queueName]
@@ -70,7 +72,7 @@ class PostgresQueueDriver implements QueueDriver {
     async delete(queueName: string, messageID: number): Promise<{ error: any; }> {
         try {
             await this.connection.raw(`
-            SELECT * FROM pgmq.delete(
+            SELECT * FROM ${this.schema}.delete(
                 queue_name => ?,
                 msg_id     => ?
             );
