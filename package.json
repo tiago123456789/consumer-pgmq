@@ -1,5 +1,5 @@
 {
-  "name": "consumer-supabase-pgmq",
+  "name": "consumer-pgmq",
   "version": "1.0.0",
   "description": "The consumer of Supabase pgmq",
   "main": "dist/index.js",
