@@ -5,10 +5,12 @@
   "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
+    "build": "tsc",
     "start:example:postgres": "ts-node ./examples/consumerPostgresDriver.ts",
     "start:example:supabase": "ts-node ./examples/consumerSupabaseDriver.ts",
     "start:dev": "ts-node-dev ./src/index.ts",
-    "test": "jest ./tests/*.spec.ts --detectOpenHandles"
+    "test": "jest ./tests/*.spec.ts --detectOpenHandles",
+    "prepublishOnly": "pnpm run build"
   },
   "keywords": [
     "supabase",
