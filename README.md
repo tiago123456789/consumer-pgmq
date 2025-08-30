@@ -54,9 +54,8 @@ if you use read consume type, the pool size is the number of messages will get a
 import { config } from "dotenv"
 config()
 
-import Consumer from '../src/consumer';
+import { SupabaseQueueDriver, Consumer } from "consumer-pgmq"
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import SupabaseQueueDriver from '../src/queueDriver/SupabaseQueueDriver';
 
 
 const supabase = createClient(
@@ -142,8 +141,7 @@ start()
 import { config } from "dotenv"
 config()
 
-import Consumer from '../src/consumer';
-import PostgresQueueDriver from '../src/queueDriver/PostgresQueueDriver';
+import { Consumer, PostgresQueueDriver } from "consumer-pgmq"
 import timersPromises from "node:timers/promises";
 import knex from 'knex'
 
@@ -160,7 +158,7 @@ async function start() {
         }
     });
 
-    const postgresQueueDriver = new PostgresQueueDriver(connection)
+    const postgresQueueDriver = new PostgresQueueDriver(connection, "schema_name_here")
 
     const consumer = new Consumer(
         {
