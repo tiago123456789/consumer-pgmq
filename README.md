@@ -28,6 +28,25 @@ npm install consumer-pgmq
 yarn add consumer-pgmq
 ```
 
+## Options
+
+- queueName: The name of the queue. 
+- visibilityTime: The time in seconds that the message will be invisible to other consumers. PS: 
+    - Your handler must finish in this time or the message will be visible again to other consumers.
+    - Is used too to abort the message if the handler takes too long to finish. For example, if you set visibilityTime to 15 seconds and your handler didnt finish in 15 seconds the handler will be aborted and the message will be visible again to other consumers.
+- consumeType: The type of consume. Can be "read" or "pop"
+    - Read consume type is when the consumer gets the message and the message is not deleted from queue until the callback is executed with success. 
+    - Pop consume type is when the consumer gets the message and delete from queue in the moment get the message.
+- poolSize: The number of consumers. PS: this is the number of consumers that will be created to consume the messages and 
+if you use read consume type, the pool size is the number of messages will get at the same time.
+- timeMsWaitBeforeNextPolling: The time in milliseconds to wait before the next polling
+
+## Events
+
+- finish: When the message is consumed with success
+- abort-error: When the message is aborted
+- error: When an error occurs
+
 ## Examples how to use
 
 - Consuming messages from Supabase queue
