@@ -2,6 +2,8 @@
 import { EventEmitter } from 'events';
 import { HandlerCallback, Message, Options, QueueDriver } from './type';
 
+const READ = "read";
+
 /**
  * The consumer class.
  */
@@ -37,7 +39,7 @@ class Consumer extends EventEmitter {
      * @private
      */
     private async getMessage(): Promise<{ data: Message[], error: any }> {
-        if (this.options.consumeType === "read") {
+        if (this.options.consumeType === READ) {
             if (!this.options.visibilityTime) {
                 throw new Error("visibilityTime is required for read");
             }
@@ -64,7 +66,7 @@ class Consumer extends EventEmitter {
             return;
         }
 
-        if (this.options.consumeType === "read") {
+        if (this.options.consumeType === READ) {
             const deleteMessage = await this.client.delete(
                 this.options.queueName,
                 data.msg_id
