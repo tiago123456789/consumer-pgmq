@@ -114,7 +114,7 @@ class Consumer extends EventEmitter {
             }
 
             setTimeout(() => controller.abort(), (this.options.visibilityTime || 1) * 1000);
-            await Promise.all(promises);
+            await Promise.allSettled(promises);
             promises = [];
         } catch (err: any) {
             if (err.name === "AbortError") {
