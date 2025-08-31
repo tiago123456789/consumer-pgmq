@@ -25,6 +25,11 @@ interface Options {
      * The time to wait before next polling. PS: the time in milliseconds
      */
     timeMsWaitBeforeNextPolling?: number;
+
+    /**
+     * The enabled polling. PS: if true, the consumer will poll the message
+     */
+    enabledPolling: boolean;
 }
 
 /**

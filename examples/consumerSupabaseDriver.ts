@@ -25,45 +25,39 @@ const supabaseQueueDriver = new SupabaseQueueDriver(
 import timersPromises from "node:timers/promises";
 
 async function start() {
-    for (let i = 0; i < 200; i++) {
-        await supabase.rpc("send", {
-            queue_name: "subscriptions",
-            message: { "message": `Message triggered at ${Date.now()}` }
-        });
-    }
-    console.log("Total messages sent: ", 200)
+    // for (let i = 0; i < 200; i++) {
+    //     await supabase.rpc("send", {
+    //         queue_name: "subscriptions",
+    //         message: { "message": `Message triggered at ${Date.now()}` }
+    //     });
+    // }
+    // console.log("Total messages sent: ", 200)
 
     const consumer = new Consumer(
         {
             queueName: 'subscriptions',
             visibilityTime: 15,
             consumeType: "read",
-            poolSize: 4,
-            timeMsWaitBeforeNextPolling: 1000
+            poolSize: 8,
+            timeMsWaitBeforeNextPolling: 1000,
+            enabledPolling: false
         },
         async function (message: { [key: string]: any }, signal): Promise<void> {
             try {
-                console.log(message)
-                const url = "https://jsonplaceholder.typicode.com/todos/1";
-                await timersPromises.setTimeout(100, null, { signal });
-                console.log("Fetching data...");
-                const response = await fetch(url, { signal });
-                const todo = await response.json();
-                console.log("Todo:", todo);
-            } catch (error: any) {
-                if (error.name === "AbortError") {
-                    console.log("Operation aborted");
-                } else {
-                    console.error("Error:", error);
+                if (message.error) {
+                    throw new Error("Error in message")
                 }
+                console.log(message)
+            } catch (error: any) {
+                throw error
             }
         },
         supabaseQueueDriver
     );
 
-    consumer.on('finish', (message: { [key: string]: any }) => {
-        console.log('Consumed message =>', message);
-    });
+    // consumer.on('finish', (message: { [key: string]: any }) => {
+    //     console.log('Consumed message =>', message);
+    // });
 
     consumer.on("abort-error", (err) => {
         console.log("Abort error =>", err)

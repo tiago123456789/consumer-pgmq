@@ -27,17 +27,18 @@ async function start() {
             visibilityTime: 15,
             consumeType: "read",
             poolSize: 4,
-            timeMsWaitBeforeNextPolling: 1000
+            timeMsWaitBeforeNextPolling: 1000,
+            enabledPolling: true
         },
         async function (message: { [key: string]: any }, signal): Promise<void> {
             try {
                 console.log(message)
-                const url = "https://jsonplaceholder.typicode.com/todos/1";
-                await timersPromises.setTimeout(100, null, { signal });
-                console.log("Fetching data...");
-                const response = await fetch(url, { signal });
-                const todo = await response.json();
-                console.log("Todo:", todo);
+                // const url = "https://jsonplaceholder.typicode.com/todos/1";
+                // await timersPromises.setTimeout(100, null, { signal });
+                // console.log("Fetching data...");
+                // const response = await fetch(url, { signal });
+                // const todo = await response.json();
+                // console.log("Todo:", todo);
             } catch (error: any) {
                 if (error.name === "AbortError") {
                     console.log("Operation aborted");
@@ -49,9 +50,9 @@ async function start() {
         postgresQueueDriver
     );
 
-    consumer.on('finish', (message: { [key: string]: any }) => {
-        console.log('Consumed message =>', message);
-    });
+    // consumer.on('finish', (message: { [key: string]: any }) => {
+    //     console.log('Consumed message =>', message);
+    // });
 
     consumer.on("abort-error", (err) => {
         console.log("Abort error =>", err)

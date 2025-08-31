@@ -92,7 +92,7 @@ class Consumer extends EventEmitter {
                 throw error;
             }
 
-            if (data.length === 0) {
+            if (data.length === 0 && this.options.enabledPolling) {
                 setTimeout(
                     () => this.pollMessage(),
                     (this.options.timeMsWaitBeforeNextPolling || 1000) * 10
@@ -123,6 +123,9 @@ class Consumer extends EventEmitter {
                 this.emit('error', err);
             }
         } finally {
+            if (!this.options.enabledPolling) {
+                return;
+            }
             setTimeout(() => this.pollMessage(), this.options.timeMsWaitBeforeNextPolling || 1000);
         }
     }
