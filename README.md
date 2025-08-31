@@ -40,6 +40,7 @@ yarn add consumer-pgmq
 - poolSize: The number of consumers. PS: this is the number of consumers that will be created to consume the messages and 
 if you use read consume type, the pool size is the number of messages will get at the same time.
 - timeMsWaitBeforeNextPolling: The time in milliseconds to wait before the next polling
+- enabledPolling: The enabled polling. PS: if true, the consumer will poll the message, if false, the consumer will consume the message one time and stop. PS: is required to the versions more than 1.0.5
 
 ## Events
 
