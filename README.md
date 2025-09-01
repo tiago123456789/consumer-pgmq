@@ -92,7 +92,8 @@ async function start() {
             visibilityTime: 15,
             consumeType: "read",
             poolSize: 4,
-            timeMsWaitBeforeNextPolling: 1000
+            timeMsWaitBeforeNextPolling: 1000,
+            enabledPolling: false
         },
         async function (message: { [key: string]: any }, signal): Promise<void> {
             try {
@@ -167,7 +168,8 @@ async function start() {
             visibilityTime: 15,
             consumeType: "read",
             poolSize: 4,
-            timeMsWaitBeforeNextPolling: 1000
+            timeMsWaitBeforeNextPolling: 1000,
+            enabledPolling: false
         },
         async function (message: { [key: string]: any }, signal): Promise<void> {
             try {
