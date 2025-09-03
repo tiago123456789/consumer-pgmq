@@ -39,7 +39,7 @@ class Consumer extends EventEmitter {
 
     private valideOptions() {
         if (this.options.queueNameDlq && !this.options.totalRetriesBeforeSendToDlq) {
-            throw new Error("The option totalRetriesBeforeSendToDlq is required for queueNameDlq");
+            throw new Error("The option totalRetriesBeforeSendToDlq is required when queueNameDlq is set");
         }
     }
 

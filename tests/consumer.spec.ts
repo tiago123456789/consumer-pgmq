@@ -28,6 +28,167 @@ describe('Consumer', () => {
     })
 
 
+    it('Should throw error if set dead letter queue and no set total retries before send to dlq', async () => {
+        try {
+            queueDriver.get.mockResolvedValueOnce({ data: [message], error: null })
+            queueDriver.delete.mockResolvedValueOnce({ error: null })
+            queueDriver.get.mockResolvedValueOnce({ data: [], error: null })
+
+            const handler = jest.fn(async () => { })
+            const consumer = new Consumer(
+                {
+                    queueName: 'q',
+                    consumeType: 'read',
+                    visibilityTime: 1,
+                    poolSize: 1,
+                    timeMsWaitBeforeNextPolling: 1,
+                    enabledPolling: true,
+                    queueNameDlq: 'q_dlq',
+                },
+                handler,
+                queueDriver
+            )
+
+            const onFinish = jest.fn()
+            consumer.on('finish', onFinish)
+            await consumer.start()
+        } catch (error: any) {
+            expect(error).toBeInstanceOf(Error)
+            expect(error.message).toBe('The option totalRetriesBeforeSendToDlq is required when queueNameDlq is set')
+        }
+    })
+
+
+    it('Should send message to dlq if read count is greater than total retries before send to dlq', async () => {
+        const messageToSendDlq = { ...message }
+        messageToSendDlq.read_ct = 3
+        messageToSendDlq.msg_id = 2
+        queueDriver.get.mockResolvedValueOnce({ data: [messageToSendDlq], error: null })
+        queueDriver.delete.mockResolvedValueOnce({ error: null })
+        queueDriver.get.mockResolvedValueOnce({ data: [], error: null })
+        queueDriver.send.mockResolvedValueOnce({ error: null })
+
+        const handler = jest.fn(async () => { })
+        const consumer = new Consumer(
+            {
+                queueName: 'q',
+                consumeType: 'read',
+                visibilityTime: 1,
+                poolSize: 1,
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true,
+                queueNameDlq: 'q_dlq',
+                totalRetriesBeforeSendToDlq: 2
+            },
+            handler,
+            queueDriver
+        )
+
+        const onFinish = jest.fn()
+        consumer.on('finish', onFinish)
+        await consumer.start()
+
+        expect(handler).toHaveBeenCalledTimes(0)
+        expect(onFinish).toHaveBeenCalledTimes(0)
+        expect(queueDriver.delete).toHaveBeenCalledTimes(1)
+        expect(queueDriver.send).toHaveBeenCalledTimes(1)
+        expect(queueDriver.send).toHaveBeenCalledWith(
+            'q_dlq', messageToSendDlq.message, expect.any(AbortSignal)
+        )
+    })
+
+    it('Should send 2 messages to dlq if read count is greater than total retries before send to dlq', async () => {
+        const messageToSendDlq = { ...message }
+        messageToSendDlq.read_ct = 3
+        messageToSendDlq.msg_id = 2
+        queueDriver.get.mockResolvedValueOnce({
+            data: [
+                messageToSendDlq, messageToSendDlq
+            ], error: null
+        })
+        queueDriver.delete.mockResolvedValueOnce({ error: null })
+        queueDriver.get.mockResolvedValueOnce({ data: [], error: null })
+        queueDriver.send.mockResolvedValue({ error: null })
+
+        const handler = jest.fn(async () => { })
+        const consumer = new Consumer(
+            {
+                queueName: 'q',
+                consumeType: 'read',
+                visibilityTime: 1,
+                poolSize: 2,
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true,
+                queueNameDlq: 'q_dlq',
+                totalRetriesBeforeSendToDlq: 2
+            },
+            handler,
+            queueDriver
+        )
+
+        const onFinish = jest.fn()
+        consumer.on('finish', onFinish)
+        await consumer.start()
+
+        expect(handler).toHaveBeenCalledTimes(0)
+        expect(onFinish).toHaveBeenCalledTimes(0)
+        expect(queueDriver.delete).toHaveBeenCalledTimes(2)
+        expect(queueDriver.send).toHaveBeenCalledTimes(2)
+        expect(queueDriver.send).toHaveBeenCalledWith(
+            'q_dlq', messageToSendDlq.message, expect.any(AbortSignal)
+        )
+    })
+
+
+    it('Should send only 1 message to dlq if read count is greater than total retries before send to dlq', async () => {
+        const messageToSendDlq = { ...message }
+        messageToSendDlq.read_ct = 3
+        messageToSendDlq.msg_id = 2
+
+        const messageToSendDlq2 = { ...message }
+        messageToSendDlq2.read_ct = 1
+        messageToSendDlq2.msg_id = 3
+        queueDriver.get.mockResolvedValueOnce({
+            data: [
+                messageToSendDlq, messageToSendDlq2
+            ], error: null
+        })
+        queueDriver.delete.mockResolvedValue({ error: null })
+        queueDriver.get.mockResolvedValueOnce({ data: [], error: null })
+        queueDriver.send.mockResolvedValue({ error: null })
+
+        const handler = jest.fn(async () => {
+            return Promise.resolve()
+        })
+        const consumer = new Consumer(
+            {
+                queueName: 'q',
+                consumeType: 'read',
+                visibilityTime: 1,
+                poolSize: 2,
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true,
+                queueNameDlq: 'q_dlq',
+                totalRetriesBeforeSendToDlq: 2
+            },
+            handler,
+            queueDriver
+        )
+
+        const onFinish = jest.fn()
+        consumer.on('finish', onFinish)
+        await consumer.start()
+
+        expect(handler).toHaveBeenCalledTimes(1)
+        expect(onFinish).toHaveBeenCalledTimes(1)
+        expect(queueDriver.delete).toHaveBeenCalledTimes(2)
+        expect(queueDriver.send).toHaveBeenCalledTimes(1)
+        expect(queueDriver.send).toHaveBeenCalledWith(
+            'q_dlq', messageToSendDlq.message, expect.any(AbortSignal)
+        )
+    })
+
+
 
     it('Should not process message if read method does not return any message second polling', async () => {
         queueDriver.get.mockResolvedValueOnce({ data: [message], error: null })
