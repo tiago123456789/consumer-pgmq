@@ -21,33 +21,30 @@ const supabaseQueueDriver = new SupabaseQueueDriver(
     supabase as unknown as SupabaseClient
 )
 
-
-import timersPromises from "node:timers/promises";
-
 async function start() {
-    // for (let i = 0; i < 200; i++) {
-    //     await supabase.rpc("send", {
-    //         queue_name: "subscriptions",
-    //         message: { "message": `Message triggered at ${Date.now()}` }
-    //     });
-    // }
-    // console.log("Total messages sent: ", 200)
+    for (let i = 0; i < 50; i++) {
+        await supabase.rpc("send", {
+            queue_name: "subscriptions",
+            message: { "message": `Message triggered at ${Date.now()}` }
+        });
+    }
+    console.log("Total messages sent: ", 50)
 
     const consumer = new Consumer(
         {
             queueName: 'subscriptions',
-            visibilityTime: 15,
+            visibilityTime: 30,
             consumeType: "read",
             poolSize: 8,
             timeMsWaitBeforeNextPolling: 1000,
-            enabledPolling: false
+            enabledPolling: true,
+            queueNameDlq: "subscriptions_dlq",
+            totalRetriesBeforeSendToDlq: 2
         },
         async function (message: { [key: string]: any }, signal): Promise<void> {
             try {
-                if (message.error) {
-                    throw new Error("Error in message")
-                }
                 console.log(message)
+                throw new Error("Error in message")
             } catch (error: any) {
                 throw error
             }
@@ -59,6 +56,9 @@ async function start() {
     //     console.log('Consumed message =>', message);
     // });
 
+    consumer.on("send-to-dlq", (message: { [key: string]: any }) => {
+        console.log("Send to DLQ =>", message)
+    })
     consumer.on("abort-error", (err) => {
         console.log("Abort error =>", err)
     })

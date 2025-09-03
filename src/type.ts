@@ -30,6 +30,16 @@ interface Options {
      * The enabled polling. PS: if true, the consumer will poll the message
      */
     enabledPolling: boolean;
+
+    /**
+     * The name of the queue DLQ
+     */
+    queueNameDlq?: string;
+
+    /**
+     * The total retries before send the message to DLQ. PS: if set queueNameDlq, this option is required
+     */
+    totalRetriesBeforeSendToDlq?: number;
 }
 
 /**
@@ -64,6 +74,18 @@ interface Message {
 }
 
 interface QueueDriver {
+
+    /**
+     * Send the message
+     * @param queueName The name of the queue
+     * @param message The message
+     * @returns Promise<{ error: any }>
+     */
+    send(
+        queueName: string,
+        message: { [key: string]: any },
+        signal: AbortSignal
+    ): Promise<{ error: any }>;
 
     /**
      * Get the message

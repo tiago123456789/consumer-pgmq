@@ -22,6 +22,8 @@ class Consumer extends EventEmitter {
      */
     private client: QueueDriver
 
+    private setTimeoutId: NodeJS.Timeout | null = null;
+
     constructor(
         options: Options,
         callback: HandlerCallback,
@@ -31,6 +33,14 @@ class Consumer extends EventEmitter {
         this.options = options;
         this.callback = callback;
         this.client = client;
+        this.valideOptions();
+        this.setTimeoutId = null;
+    }
+
+    private valideOptions() {
+        if (this.options.queueNameDlq && !this.options.totalRetriesBeforeSendToDlq) {
+            throw new Error("The option totalRetriesBeforeSendToDlq is required for queueNameDlq");
+        }
     }
 
     /**
@@ -84,6 +94,9 @@ class Consumer extends EventEmitter {
      * @private
      */
     private async pollMessage() {
+        if (this.setTimeoutId) {
+            clearTimeout(this.setTimeoutId);
+        }
         let promises: Promise<any>[] = [];
 
         try {
@@ -93,18 +106,39 @@ class Consumer extends EventEmitter {
             }
 
             if (data.length === 0 && this.options.enabledPolling) {
-                setTimeout(
+                this.setTimeoutId = setTimeout(
                     () => this.pollMessage(),
                     (this.options.timeMsWaitBeforeNextPolling || 1000) * 10
                 );
                 return;
             }
 
-
             const controller = new AbortController();
             const signal = controller.signal;
 
-            for (let i = 0; i < (data.length || 1); i++) {
+            for (let i = 0; i < data.length; i++) {
+                const hasSendToDlq = data[i] &&
+                    this.options.queueNameDlq &&
+                    this.options.totalRetriesBeforeSendToDlq &&
+                    data[i].read_ct > this.options.totalRetriesBeforeSendToDlq
+                if (
+                    hasSendToDlq
+                ) {
+                    promises.push(
+                        this.client.send(
+                            // @ts-ignore
+                            this.options.queueNameDlq,
+                            data[i].message,
+                            signal
+                        ).then(async () => {
+                            await this.deleteMessage(data[i], signal);
+                            this.emit('send-to-dlq', data[i]);
+                        })
+                    )
+                    continue;
+                }
+
+
                 promises.push(
                     this.callback(data[i].message, signal).then(async () => {
                         await this.deleteMessage(data[i], signal);
@@ -113,8 +147,12 @@ class Consumer extends EventEmitter {
                 );
             }
 
-            setTimeout(() => controller.abort(), (this.options.visibilityTime || 1) * 1000);
-            await Promise.allSettled(promises);
+            const timeoutId = setTimeout(() => controller.abort(), (this.options.visibilityTime || 1) * 1000);
+            if (promises.length > 0) {
+                await Promise.allSettled(promises);
+            }
+
+            clearTimeout(timeoutId);
             promises = [];
         } catch (err: any) {
             if (err.name === "AbortError") {
@@ -126,7 +164,7 @@ class Consumer extends EventEmitter {
             if (!this.options.enabledPolling) {
                 return;
             }
-            setTimeout(() => this.pollMessage(), this.options.timeMsWaitBeforeNextPolling || 1000);
+            this.setTimeoutId = setTimeout(() => this.pollMessage(), this.options.timeMsWaitBeforeNextPolling || 1000);
         }
     }
 

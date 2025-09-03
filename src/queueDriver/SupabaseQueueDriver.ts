@@ -8,6 +8,21 @@ class SupabaseQueueDriver implements QueueDriver {
     ) { }
 
     /**
+     * Send the message
+     * @param queueName The name of the queue
+     * @param message The message
+     * @returns Promise<{ error: any }>
+     */
+    async send(queueName: string, message: { [key: string]: any; }): Promise<{ error: any; }> {
+        const { error } = await this.supabase.rpc("send", {
+            queue_name: queueName,
+            message: message
+        });
+
+        return { error };
+    }
+
+    /**
      * Get the message
      * @param queueName The name of the queue
      * @param visibilityTime The visibility time of the message

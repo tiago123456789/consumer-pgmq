@@ -1,13 +1,39 @@
-import { Knex } from "knex";
 import { Message, QueueDriver } from "../type";
+import { Client } from "pg";
 
 class PostgresQueueDriver implements QueueDriver {
 
 
     constructor(
-        private connection: Knex,
-        private schema: string = "public"
+        private connection: Client,
+        private schema: string = "public",
     ) { }
+
+    /**
+     * Send the message
+     * @param queueName The name of the queue
+     * @param message The message
+     * @returns Promise<{ error: any }>
+     */
+    async send(
+        queueName: string,
+        message: { [key: string]: any; },
+    ): Promise<{ error: any; }> {
+        try {
+            await this.connection.query(`
+            SELECT * FROM ${this.schema}.send(
+                queue_name => $1,
+                msg        => $2,
+                delay      => $3
+            );
+            `, [queueName, message, 1]
+            )
+
+            return { error: null };
+        } catch (error) {
+            return { error };
+        }
+    }
 
     /**
      * Get the message
@@ -18,11 +44,11 @@ class PostgresQueueDriver implements QueueDriver {
      */
     async get(queueName: string, visibilityTime: number, totalMessages: number): Promise<{ data: Message[]; error: any; }> {
         try {
-            const register = await this.connection.raw(`
+            const register = await this.connection.query(`
                 SELECT * FROM ${this.schema}.read(
-                    queue_name => ?,
-                    vt         => ?,
-                    qty        => ?
+                    queue_name => $1,
+                    vt         => $2,
+                    qty        => $3
                 );
                 `, [queueName, visibilityTime, totalMessages]
             )
@@ -45,10 +71,10 @@ class PostgresQueueDriver implements QueueDriver {
      */
     async pop(queueName: string): Promise<{ data: Message[]; error: any; }> {
         try {
-            const register = await this.connection.raw(`
+            const register = await this.connection.query(`
                 SELECT * FROM ${this.schema}.pop(
-                    queue_name => ?
-                );
+                    queue_name => $1
+                )
                 `, [queueName]
             )
 
@@ -71,12 +97,13 @@ class PostgresQueueDriver implements QueueDriver {
      */
     async delete(queueName: string, messageID: number): Promise<{ error: any; }> {
         try {
-            await this.connection.raw(`
+            await this.connection.query(`
             SELECT * FROM ${this.schema}.delete(
-                queue_name => ?,
-                msg_id     => ?
+                queue_name => $1,
+                msg_id     => $2
             );
-            `, [queueName, messageID]
+            `, [queueName, messageID],
+
             )
 
             return { error: null };
