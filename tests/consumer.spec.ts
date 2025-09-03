@@ -1,6 +1,5 @@
 import Consumer from '../src/consumer'
 import { Message, QueueDriver, Options } from '../src/type'
-import timersPromises from 'node:timers/promises'
 
 describe('Consumer', () => {
     let queueDriver: jest.Mocked<QueueDriver>
@@ -18,6 +17,7 @@ describe('Consumer', () => {
             get: jest.fn(),
             pop: jest.fn(),
             delete: jest.fn(),
+            send: jest.fn(),
         }
         jest.useFakeTimers();
     })
@@ -41,7 +41,8 @@ describe('Consumer', () => {
                 consumeType: 'read',
                 visibilityTime: 1,
                 poolSize: 1,
-                timeMsWaitBeforeNextPolling: 1
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true
             },
             handler,
             queueDriver
@@ -69,7 +70,8 @@ describe('Consumer', () => {
                 consumeType: 'pop',
                 visibilityTime: 1,
                 poolSize: 1,
-                timeMsWaitBeforeNextPolling: 1
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true
             },
             handler,
             queueDriver
@@ -95,7 +97,8 @@ describe('Consumer', () => {
                 consumeType: 'pop',
                 visibilityTime: 1,
                 poolSize: 1,
-                timeMsWaitBeforeNextPolling: 1
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true
             },
             handler,
             queueDriver
@@ -121,7 +124,8 @@ describe('Consumer', () => {
                 consumeType: 'read',
                 visibilityTime: 1,
                 poolSize: 1,
-                timeMsWaitBeforeNextPolling: 1
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true
             },
             handler,
             queueDriver
@@ -150,7 +154,8 @@ describe('Consumer', () => {
                 consumeType: 'read',
                 visibilityTime: 1,
                 poolSize: 1,
-                timeMsWaitBeforeNextPolling: 1
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true
             },
             handler,
             queueDriver
@@ -179,7 +184,8 @@ describe('Consumer', () => {
                 consumeType: 'read',
                 visibilityTime: 1,
                 poolSize: 4,
-                timeMsWaitBeforeNextPolling: 1
+                timeMsWaitBeforeNextPolling: 1,
+                enabledPolling: true
             },
             handler,
             queueDriver
