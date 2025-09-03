@@ -40,7 +40,13 @@ yarn add consumer-pgmq
 - poolSize: The number of consumers. PS: this is the number of consumers that will be created to consume the messages and 
 if you use read consume type, the pool size is the number of messages will get at the same time.
 - timeMsWaitBeforeNextPolling: The time in milliseconds to wait before the next polling
-- enabledPolling: The enabled polling. PS: if true, the consumer will poll the message, if false, the consumer will consume the message one time and stop. PS: is required to the versions more than 1.0.5
+- enabledPolling: The enabled polling. PS: if true, the consumer will poll the message, if false, the consumer will consume the message one time and stop. PS: is required to the versions more than 1.0.5.
+- queueNameDlq: The name of the dead letter queue. PS: recommended to set the same name of the queue, but suffix with '_dlq'. For example: **messages_dlq**
+- totalRetriesBeforeSendToDlq: The total retries before send to dlq. For example: if you set totalRetriesBeforeSendToDlq equal 2, the message will be sent to dlq if the handler fails 2 times, so the third time the message will be sent to dlq and remove the main queue to avoid infinite retries.
+
+## Extra points to know when use the dlq feature
+- The dead letter queue no work If you setted the consumerType option with value 'pop', because the pop get the message and remove from queue at same time, so if failed when you are processing you lose the message.
+- Recommendation no set lower value to the option 'visibilityTime' if you are using the dead letter queue feature. For example: set visibilityTime value lower than 30 seconds, because if the message wasn't delete and the message be available again the consumer application can consume the message again.
 
 ## Events
 
@@ -89,11 +95,13 @@ async function start() {
     const consumer = new Consumer(
         {
             queueName: 'subscriptions',
-            visibilityTime: 15,
+            visibilityTime: 30,
             consumeType: "read",
-            poolSize: 4,
+            poolSize: 8,
             timeMsWaitBeforeNextPolling: 1000,
-            enabledPolling: false
+            enabledPolling: true,
+            queueNameDlq: "subscriptions_dlq",
+            totalRetriesBeforeSendToDlq: 2
         },
         async function (message: { [key: string]: any }, signal): Promise<void> {
             try {
@@ -143,33 +151,39 @@ start()
 import { config } from "dotenv"
 config()
 
-import { Consumer, PostgresQueueDriver } from "consumer-pgmq"
-import timersPromises from "node:timers/promises";
-import knex from 'knex'
+import Consumer from '../src/consumer';
+import PostgresQueueDriver from '../src/queueDriver/PostgresQueueDriver';
+
+import { Client } from 'pg'
 
 async function start() {
-    const connection = knex({
-        client: 'pg',
-        connection: {
-            host: process.env.POSTGRES_HOST,
-            database: process.env.POSTGRES_DATABASE,
-            password: process.env.POSTGRES_PASSWORD,
-            port: Number(process.env.POSTGRES_PORT),
-            user: process.env.POSTGRES_USER,
-            ssl: false
-        }
-    });
 
-    const postgresQueueDriver = new PostgresQueueDriver(connection, "schema_name_here")
+    const pgClient = new Client({
+        host: process.env.POSTGRES_HOST,
+        database: process.env.POSTGRES_DATABASE,
+        password: process.env.POSTGRES_PASSWORD,
+        port: Number(process.env.POSTGRES_PORT),
+        user: process.env.POSTGRES_USER,
+        ssl: false,
+    })
+
+    await pgClient.connect()
+
+
+    const postgresQueueDriver = new PostgresQueueDriver(
+        pgClient, "pgmq"
+    )
 
     const consumer = new Consumer(
         {
             queueName: 'subscriptions',
-            visibilityTime: 15,
+            visibilityTime: 30,
             consumeType: "read",
-            poolSize: 4,
+            poolSize: 8,
             timeMsWaitBeforeNextPolling: 1000,
-            enabledPolling: false
+            enabledPolling: true,
+            queueNameDlq: "subscriptions_dlq",
+            totalRetriesBeforeSendToDlq: 2
         },
         async function (message: { [key: string]: any }, signal): Promise<void> {
             try {
